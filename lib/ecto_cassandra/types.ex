@@ -6,6 +6,7 @@ defmodule EctoCassandra.Types do
   @spec to_db(any) :: any
   def to_db(time) when time in ~w(datetime naive_datetime utc_datetime)a, do: "timestamp"
   def to_db(field) when field in ~w(id integer)a, do: "bigint"
+  def to_db(Ecto.UUID), do: "uuid"
   def to_db(:binary_id), do: "uuid"
   def to_db(:binary), do: "blob"
   def to_db(:string), do: "text"

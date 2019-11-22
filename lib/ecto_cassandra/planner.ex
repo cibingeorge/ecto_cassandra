@@ -21,10 +21,11 @@ defmodule EctoCassandra.Planner do
         }
 
   @type schema_meta :: %{
-          source: source,
-          schema: atom,
+          autogenerate_id: {schema_field :: atom, source_field :: atom, Ecto.Type.t()},
           context: term,
-          autogenerate_id: {atom, :id | :binary_id}
+          prefix: binary | nil,
+          schema: atom,
+          source: binary
         }
 
   @type adapter_meta() :: Ecto.Adapter.adapter_meta()
@@ -87,6 +88,7 @@ defmodule EctoCassandra.Planner do
     end
   end
 
+
   @doc """
   Automatically generate next ID for binary keys, leave sequence keys empty for generation on insert.
   """
@@ -122,27 +124,22 @@ defmodule EctoCassandra.Planner do
     {:cache, prepared}
   end
 
+  #def execute(adapter_meta, query_meta, query_cache, params, options) do
+
   @impl true
-  @spec execute(repo, query_meta, query, params :: list, process | nil, options) :: result
+  @spec execute(adapter_meta, query_meta, query_cache, params :: list, options) :: result
         when result: {integer, [[term]] | nil} | no_return,
-             query:
+             query_cache:
                {:nocache, prepared()}
                | {:cached, (prepared -> :ok), cached}
                | {:cache, (cached -> :ok), prepared}
-  def execute(repo, query, {:nocache, prepared}, sources, preprocess, opts) do
-    execute(repo, query, {:cache, nil, prepared}, sources, preprocess, opts)
+  def execute(adapter_meta, query_meta, {:nocache, prepared}, params, options) do
+    execute(adapter_meta, query_meta, {:cache, nil, prepared}, params, options)
   end
 
-  def execute(
-        _repo,
-        %{sources: {{_table_name, schema}}},
-        {:cache, _, prepared},
-        sources,
-        preprocess,
-        _opts
-      ) do
-    with %Xandra.Page{} = page <- Xandra.execute!(Conn, prepared, sources) do
-      process_page(page, schema, preprocess)
+  def execute(_adapter_meta, %{sources: {{_table_name, schema, _}}}, {:cache, _, prepared}, params, _opts) do
+    with %Xandra.Page{} = page <- Xandra.execute!(Conn, prepared, params) do
+      process_page(page, schema, nil)
     else
       %Xandra.Void{} ->
         {0, []}
@@ -150,6 +147,11 @@ defmodule EctoCassandra.Planner do
       err ->
         err
     end
+  end
+
+  @impl true
+  def stream(adapter_meta, query_meta, query_cache, params, options) do
+      IO.puts inspect({adapter_meta, query_meta, query_cache, params, options})
   end
 
   defp process_page(page, schema, preprocess) do
@@ -163,19 +165,21 @@ defmodule EctoCassandra.Planner do
   end
 
   @impl true
-  @spec insert(repo, schema_meta, fields, on_conflict, returning, options) ::
+  @spec insert(adapter_meta, schema_meta, fields, on_conflict, returning, options) ::
           {:ok, fields}
           | {:invalid, constraints}
           | no_return
   def insert(
-        _repo,
-        %{schema: schema, source: {_, table}},
-        sources,
-        _on_conflict,
-        _returning,
-        opts
-      ),
-      do: do_insert(table, schema, sources, opts)
+        %{repo: repo},
+        %{schema: schema, source: table} = schema_meta,
+        fields,
+        on_conflict,
+        returning,
+        options
+      ) do
+    IO.puts inspect({repo, schema_meta, fields, on_conflict, returning, options})
+    do_insert(table, schema, fields, options)
+  end
 
   defp do_insert(table, schema, sources, opts) do
     statement = Query.new(insert: {table, sources, opts})

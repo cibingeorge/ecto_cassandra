@@ -3,7 +3,6 @@ defmodule EctoCassandra.Adapter do
   Ecto 2.x adapter for the Cassandra database
   """
 
-  @behaviour Ecto.Adapter
   @adapter EctoCassandra.Planner
   @storage_adapter EctoCassandra.Storage
   @migration_adapter EctoCassandra.Migration
@@ -11,50 +10,80 @@ defmodule EctoCassandra.Adapter do
 
   alias Xandra.Batch
 
+  @behaviour Ecto.Adapter
+
   @doc false
   defmacro __before_compile__(_env), do: :ok
 
   @doc false
-  defdelegate checkout(adapter_meta, options, function), to: @adapter
+  defdelegate ensure_all_started(config, type), to: @adapter
 
   @doc false
   defdelegate init(config), to: @adapter
 
   @doc false
-  defdelegate ensure_all_started(repo, type), to: @adapter
+  defdelegate checkout(adapter_meta, config, function), to: @adapter
+
+  @doc false
+  defdelegate loaders(primitive_type, ecto_type), to: @adapter
+
+  @doc false
+  defdelegate dumpers(primitive_type, ecto_type), to: @adapter
+
+
+  @behaviour Ecto.Adapter.Queryable
 
   @doc false
   defdelegate prepare(operation, query), to: @adapter
 
   @doc false
-  defdelegate execute(repo, query_meta, query_cache, sources, preprocess, opts),
+  defdelegate execute(adapter_meta, query_meta, query_cache, params, options), to: @adapter
+
+  @doc false
+  defdelegate stream(adapter_meta, query_meta, query_cache, params, options), to: @adapter
+
+
+  @behaviour Ecto.Adapter.Schema
+
+  @doc false
+  defdelegate autogenerate(field_type), to: @adapter
+
+  @doc false
+  defdelegate insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, options),
     to: @adapter
 
   @doc false
-  defdelegate insert(repo, query_meta, sources, on_conflict, returning, opts),
-    to: @adapter
+  defdelegate insert(adapter_meta, schema_meta, fields, on_conflict, returning, options), to: @adapter
 
   @doc false
-  defdelegate insert_all(repo, query_meta, header, rows, on_conflict, returning, opts),
-    to: @adapter
+  defdelegate update(adapter_meta, schema_meta, fields, filter, returning, options), to: @adapter
 
   @doc false
-  defdelegate update(repo, query_meta, params, filter, autogen, opts), to: @adapter
+  defdelegate delete(adapter_meta, schema_meta, filters, options), to: @adapter
+
+
+  @behaviour Ecto.Adapter.Storage
 
   @doc false
-  defdelegate delete(repo, query_meta, filter, opts), to: @adapter
+  defdelegate storage_down(options), to: @storage_adapter
+
+  @doc false
+  defdelegate storage_up(options), to: @storage_adapter
+
+
+  @behaviour Ecto.Adapter.Transaction
 
   @doc false
   @spec transaction(any, any, any) :: nil
-  def transaction(_repo, _opts, _fun), do: nil
+  def transaction(_adapter_meta, _options, _function), do: nil
 
   @doc false
   @spec in_transaction?(any) :: false
-  def in_transaction?(_repo), do: false
+  def in_transaction?(_adapter_meta), do: false
 
   @doc false
   @spec rollback(any, any) :: nil
-  def rollback(_repo, _tid), do: nil
+  def rollback(_adapter_meta, _value), do: nil
 
   @doc """
   Cassandra batches
@@ -80,30 +109,13 @@ defmodule EctoCassandra.Adapter do
     Xandra.execute(EctoCassandra.Conn, batch)
   end
 
-  @doc false
-  defdelegate autogenerate(type), to: @adapter
-
-  @doc false
-  defdelegate loaders(primitive, type), to: @adapter
-
-  @doc false
-  defdelegate dumpers(primitive, type), to: @adapter
-
-  @behaviour Ecto.Adapter.Storage
-
-  @doc false
-  defdelegate storage_down(opts), to: @storage_adapter
-
-  @doc false
-  defdelegate storage_up(opts), to: @storage_adapter
-
   @behaviour Ecto.Adapter.Migration
 
   @doc false
-  defdelegate execute_ddl(repo, command, options), to: @migration_adapter
+  def supports_ddl_transaction?, do: false
 
   @doc false
-  def supports_ddl_transaction?, do: false
+  defdelegate execute_ddl(adapter_meta, command, options), to: @migration_adapter
 
   @doc false
   @spec lock_for_migrations(
@@ -112,7 +124,7 @@ defmodule EctoCassandra.Adapter do
           options :: Keyword.t(),
           fun
         ) :: no_return
-  def lock_for_migrations(_adapter_meta, _arg1, _options, _fun),
+  def lock_for_migrations(_adapter_meta, _query, _options, _function),
     do: raise(RuntimeError, "Can't lock the migrations tables")
 
   @behaviour Ecto.Adapter.Structure

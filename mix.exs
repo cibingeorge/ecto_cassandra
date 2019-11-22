@@ -30,17 +30,17 @@ defmodule EctoCassandra.MixProject do
   defp deps do
     [
       {:credo, "~> 1.0", only: ~w(dev test)a},
-      {:db_connection, "~> 2.0", override: true},
+      {:db_connection, "~> 2.0"},
       {:dialyxir, "~> 1.0.0-rc.3", only: ~w(dev test)a, runtime: false},
-      {:ecto, "~> 3.0"},
-      {:ecto_sql, "~> 3.0"},
+      {:ecto, "~> 3.2"},
+      {:ecto_sql, "~> 3.2"},
       {:ex_doc, "~> 0.14", only: :dev},
       {:ex_machina, "~> 2.2", only: :test},
       {:excoveralls, "~> 0.8", only: :test},
       {:faker, "~> 0.10", only: :test},
       {:mix_test_watch, "~> 0.7", only: :dev, runtime: false},
       {:mox, "~> 0.4", only: :test},
-      {:xandra, "~> 0.10"},
+      {:xandra, "~> 0.13"},
       {:uuid, "~> 1.1"}
     ]
   end

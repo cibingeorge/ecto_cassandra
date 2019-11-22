@@ -103,11 +103,11 @@ defmodule EctoCassandra.Query do
   end
 
   @spec all(Ecto.Query.t(), keyword) :: String.t()
-  def all(%Q{from: {table, _}, wheres: []}, _opts) do
+  def all(%Q{from: %{source: {table, _}}, wheres: []}, _opts) do
     "SELECT * FROM #{table}"
   end
 
-  def all(%Q{from: {table, _}, wheres: wheres, limit: limit}, _opts) do
+  def all(%Q{from: %{source: {table, _}}, wheres: wheres, limit: limit}, _opts) do
     "SELECT * FROM #{table} WHERE #{where(wheres)} #{limit(limit)}"
   end
 
