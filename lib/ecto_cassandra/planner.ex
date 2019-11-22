@@ -124,8 +124,6 @@ defmodule EctoCassandra.Planner do
     {:cache, prepared}
   end
 
-  #def execute(adapter_meta, query_meta, query_cache, params, options) do
-
   @impl true
   @spec execute(adapter_meta, query_meta, query_cache, params :: list, options) :: result
         when result: {integer, [[term]] | nil} | no_return,
@@ -177,7 +175,6 @@ defmodule EctoCassandra.Planner do
         returning,
         options
       ) do
-    IO.puts inspect({repo, schema_meta, fields, on_conflict, returning, options})
     do_insert(table, schema, fields, options)
   end
 
